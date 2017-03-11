@@ -6,7 +6,7 @@
 # https://gist.github.com/chriscz/55ca9bf3aef18c5bc1ab3d54e0923607
 # refactored for Python3 compatibility.
 #
-# Copyright (C) 2015-2016 Francesco de Virgilio <fradeve@inventati.org>
+# Copyright (C) 2016-2017 Francesco de Virgilio <fradeve@inventati.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ def get_current_task():
 @click.command()
 @click.argument('command')
 def start_task(command):
-    """ Start task coming from commandline, start pomodoro timer.
+    """ Start task as set on the command line.
     """
     os.system('timew start {c}'.format(c=command))
 
