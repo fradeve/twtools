@@ -58,7 +58,7 @@ Example:
 
 will filter by default activities with the tags ``twtools`` and ``trello#464`` in the last month and sum the intervals by day, outputting the following:
 
-.. image::
+.. image::  by_day.png
 
 
 To use a different time span or granularity, flags are available:
@@ -67,7 +67,7 @@ To use a different time span or granularity, flags are available:
 
     twstats --timespan '500days ago' --step week twtools 'trello#464'
 
-.. image::
+.. image::  by_week.png
 
 Also, the stat tool comes with a comprehensive command line help: ``twstats --help``.
 
