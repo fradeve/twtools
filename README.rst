@@ -3,14 +3,24 @@ Timewarrior-tools
 
 Very simple set of scripts to get basic information from TimeWarrior.
 
-Used to get some statistics and achieve some integration with Lemonbar and i3 WM.
+Used to get some statistics and achieve some integration with Lemonbar and i3
+WM.
 
 Installation
 ------------
 
+No PIP package is available so far. Install it running ``setup.py`` Python file.
+
 .. code-block:: bash
 
     python setup.py install
+
+
+ArchLinux-specific required packages, not installed by default by PIP:
+
+.. code-block:: bash
+
+    tk texlive
 
 Tools: activity management
 --------------------------
@@ -18,7 +28,8 @@ Tools: activity management
 All of the tools included are available from the command line.
 
 ``twcurrent``
-  Shows the activity currently ongoing and the time elapsed since the task has been started.
+  Shows the activity currently ongoing and the time elapsed since the task has
+  been started.
 
   Example:
 
@@ -48,7 +59,8 @@ All of the tools included are available from the command line.
 Tools: plotting intervals
 -------------------------
 
-The ``twstats`` command plots time spent on activities selected by tag, using ``matplotlib``.
+The ``twstats`` command plots time spent on activities selected by tag, using
+``matplotlib``.
 
 Example:
 
@@ -56,7 +68,8 @@ Example:
 
     twstats twtools 'trello#416'
 
-will filter by default activities with the tags ``twtools`` and ``trello#464`` in the last month and sum the intervals by day, outputting the following:
+will filter by default activities with the tags ``twtools`` and ``trello#464``
+in the last month and sum the intervals by day, outputting the following:
 
 .. image::  by_day.png
 
@@ -69,10 +82,14 @@ To use a different time span or granularity, flags are available:
 
 .. image::  by_week.png
 
-Also, the stat tool comes with a comprehensive command line help: ``twstats --help``.
+Also, the stat tool comes with a comprehensive command line help:
+``twstats --help``.
 
 Misc notes
 ..........
 
-* The script uses ``matplotlib``'s support for LaTeX to output the plot, so both must be installed.
-* The script uses ``matplotlib``'s default style for the plot, but if ``seaborn`` is installed, it will be used.
+* The script uses ``matplotlib``'s support for LaTeX to output the plot, so both
+  must be installed.
+* The script uses ``matplotlib``'s default style for the plot, but if
+  ``seaborn`` is installed, it will be used.
+* The default ``matplotlib`` output is ``TkAgg``, so ``tk`` must be installed.

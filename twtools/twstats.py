@@ -205,4 +205,5 @@ def run(tags, timespan, step):
         columns.append(column[0])
 
     plt.legend(tuple(columns), tags)
+    plt.subplots_adjust(left=0, right=1, top=0.9, bottom=0.1)
     plt.show()
