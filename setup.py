@@ -18,7 +18,7 @@ setup(
     author_email='fradeve@inventati.org',
     license='GNU GPL v3',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Topic :: Time Tracking',
         'License :: OSI Approved :: GPLv3',
