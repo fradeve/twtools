@@ -17,11 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with twtools. If not, see <http://www.gnu.org/licenses/>.
 
-from itertools import chain
 import json
 import subprocess
 
-import arrow
 import click
 import matplotlib
 import numpy as np
@@ -29,6 +27,8 @@ import numpy as np
 matplotlib.use('TkAgg')
 
 from matplotlib import pyplot as plt, rc
+import pandas as pd
+from pandas.io.json import json_normalize
 
 try:
     import seaborn as sns
@@ -49,19 +49,8 @@ class Data(object):
         self.time_span = time_span
         self.step = step
         self.tag = tag
-        self.x_values = []
-        self.x_labels = []
-        self.y_values = []
-        self.bins = []
         self.tw_intervals = self._generate_intervals()
-        self.extremes = []
-
-        if self.tw_intervals:
-            self.extremes = [
-                self.tw_intervals[0].get('start'),
-                self.tw_intervals[-1].get('end')
-            ]
-            self.generate_bins(*self.extremes)
+        self.df = json_normalize(self.tw_intervals)
 
     def _generate_intervals(self):
         """ Export TimeWarrior data as JSON and calculate bins. """
@@ -84,88 +73,11 @@ class Data(object):
 
         return intervals
 
-    def generate_bins(self, start, end):
-        if isinstance(start, str) and isinstance(end, str):
-            start, end = arrow.get(start, fmt), arrow.get(end, fmt)
-
-        bins = [r for r in arrow.Arrow.span_range(self.step, start, end)]
-        self.extremes = [bins[0][0], bins[-1][1]]
-        self.bins = bins
-
-    def calculate_values(self):
-        for time_bin in self.bins:
-            x, step_label = self._get_x(time_bin[0], self.step)
-            step_label_txt = '-{s}'.format(s=step_label) if step_label else None
-
-            self.x_values.append(x)
-            self.x_labels.append(
-                '{x}{s}'.format(x=x, s=step_label_txt)
-                if step_label else
-                '{x}'.format(x=x)
-            )
-
-            y = self._sum_intervals_in_time_span(time_bin)
-            self.y_values.append(y or 0)
-
-    @staticmethod
-    def _get_x(time_bin_start, step):
-        if step == 'day':
-            return time_bin_start.day, time_bin_start.month
-        elif step == 'week':
-            return time_bin_start.isocalendar()[1], None
-        elif step == 'month':
-            return time_bin_start.month, time_bin_start.year
-        elif step == 'year':
-            return time_bin_start.year, None
-
-    def _sum_intervals_in_time_span(self, time_bin):
-        result = 0
-
-        for i in self.tw_intervals:
-            start = arrow.get(i.get('start'), fmt)
-            end = arrow.get(i.get('end'), fmt)
-
-            if all([start >= time_bin[0], end <= time_bin[1]]):
-                result += (end - start).total_seconds() / 60
-
-        return result
-
-
-def auto_label(ax, bar):
-    """ Attach a text label above each bar displaying its height. """
-    for b in bar:
-        if b.get_height() > 0:
-            height = b.get_height()
-            ax.text(
-                b.get_x() + b.get_width() / 2.,
-                1.0 * height,
-                '%d' % int(height),
-                ha='center',
-                va='bottom'
-            )
-
-
-def add_to_plot(plot, width, data, many, col_index):
-
-    ind = np.arange(len(data.x_values))  # X locations for the groups.
-    column = plot.bar(
-        ind + (width * col_index if data.y_values else width),
-        data.y_values,
-        width,
-    )
-
-    index = (ind + width) if many else ind
-    plot.set_xticks(index)
-    plot.set_xticklabels(data.x_labels)
-    auto_label(plot, column)
-
-    return column
-
 
 @click.command()
 @click.argument('tags', nargs=-1)
 @click.option(
-    '--timespan',
+    '--time_span',
     default='month',
     help="How far in the past the tool should look. "
          "Both TimeWarrior's hints (e.g. `:lastmonth`) and TimeWarrior's "
@@ -177,33 +89,41 @@ def add_to_plot(plot, width, data, many, col_index):
     type=click.Choice(['day', 'week', 'month', 'year']),
     help='The step of the plot.'
 )
-def run(tags, timespan, step):
-    width = 0.25  # Width of the bars.
-    many = len(tags) > 1
+def run(tags, time_span, step):
+    data_sets = [Data(time_span, step, t) for t in tags]
+    data_frames = []
 
-    fig, plot = plt.subplots()
+    for ss in data_sets:
+        if not ss.df.empty:
+            ss.df['start_time'] = pd.to_datetime(ss.df['start'])
+            ss.df['end_time'] = pd.to_datetime(ss.df['end'])
+
+            ss.df.drop('start', axis=1, inplace=True)  # Drop `start` column.
+            ss.df.drop('end', axis=1, inplace=True)  # Drop `end` column.
+            ss.df.drop('tags', axis=1, inplace=True)  # Drop `tags` column.
+
+            ss.df['duration'] = (ss.df['end_time'] - ss.df['start_time'])
+            ss.df['duration'] = (
+                (ss.df['duration'] / np.timedelta64(1, 's')) / 60
+            )
+            ss.df['day'] = ss.df.end_time.dt.to_period('D')  # Build `day` col.
+
+            ss.df.drop('start_time', axis=1, inplace=True)  # Drop `start_time`.
+            ss.df.drop('end_time', axis=1, inplace=True)  # Drop `end_time`.
+
+            ss.df = ss.df.set_index('day')  # `day` column is the new index.
+            ss.df = ss.df.groupby(by='day', level=0).sum()  # Sum intervals.
+            ss.df.rename(columns={'duration': ss.tag}, inplace=True)
+
+            data_frames.append(ss.df)
+
+    result = pd.concat(data_frames, axis=1)
+    result = result.to_timestamp()  # `PeriodIndex` to `DatetimeIndex`.
+    result_filled = result.asfreq('D', fill_value=0)  # Fill missing days.
+
+    plot = result_filled.plot(kind='bar')
     plot.set_title('Minutes spent by {p}'.format(p=step))
     plot.set_xlabel('{p}s'.format(p=step))
     plot.set_ylabel('minutes')
 
-    columns = []
-    data_sets = [Data(timespan, step, t) for t in tags]
-    data_sets = [d for d in data_sets if d.extremes]
-
-    # Get time extremes across all data sets, regenerate bins based on them.
-    extremes = list(chain.from_iterable([d.extremes for d in data_sets]))
-    extremes.sort()
-    [d.generate_bins(extremes[0], extremes[-1]) for d in data_sets]
-
-    # Calculate x and y values based on the new bins.
-    [d.calculate_values() for d in data_sets]
-
-    data_sets = [d for d in data_sets if sum(d.y_values)]
-
-    for i, data in enumerate(data_sets):
-        column = add_to_plot(plot, width, data, many, i)
-        columns.append(column[0])
-
-    plt.legend(tuple(columns), tags)
-    plt.subplots_adjust(left=0, right=1, top=0.9, bottom=0.1)
     plt.show()
