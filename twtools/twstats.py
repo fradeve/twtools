@@ -37,10 +37,10 @@ except ImportError:
     pass
 
 
-fmt = 'YYYYMMDDTHHmmss'
-
 rc('font', **{'family': 'serif', 'serif': ['Palatino']})
 rc('text', usetex=True)
+
+period_map = {'day': 'D', 'week': 'W', 'month': 'M', 'year': 'M'}
 
 
 class Data(object):
@@ -93,6 +93,8 @@ def run(tags, time_span, step):
     data_sets = [Data(time_span, step, t) for t in tags]
     data_frames = []
 
+    step_fmt = period_map.get(step)
+
     for ss in data_sets:
         if not ss.df.empty:
             ss.df['start_time'] = pd.to_datetime(ss.df['start'])
@@ -106,22 +108,29 @@ def run(tags, time_span, step):
             ss.df['duration'] = (
                 (ss.df['duration'] / np.timedelta64(1, 's')) / 60
             )
-            ss.df['day'] = ss.df.end_time.dt.to_period('D')  # Build `day` col.
+            ss.df['interval'] = ss.df.end_time.dt.to_period(step_fmt)
+            ss.df = ss.df.set_index('interval')  # `interval` column as index.
 
             ss.df.drop('start_time', axis=1, inplace=True)  # Drop `start_time`.
             ss.df.drop('end_time', axis=1, inplace=True)  # Drop `end_time`.
 
-            ss.df = ss.df.set_index('day')  # `day` column is the new index.
-            ss.df = ss.df.groupby(by='day', level=0).sum()  # Sum intervals.
+            ss.df = ss.df.groupby(
+                pd.TimeGrouper(step_fmt),
+                level=0,
+            ).aggregate(
+                np.sum
+            )
             ss.df.rename(columns={'duration': ss.tag}, inplace=True)
 
             data_frames.append(ss.df)
 
     result = pd.concat(data_frames, axis=1)
-    result = result.to_timestamp()  # `PeriodIndex` to `DatetimeIndex`.
-    result_filled = result.asfreq('D', fill_value=0)  # Fill missing days.
 
-    plot = result_filled.plot(kind='bar')
+    if step_fmt == 'D':
+        result = result.to_timestamp()  # `PeriodIndex` to `DatetimeIndex`.
+        result = result.asfreq('D', fill_value=0)  # Fill missing days.
+
+    plot = result.plot(kind='bar')
     plot.set_title('Minutes spent by {p}'.format(p=step))
     plot.set_xlabel('{p}s'.format(p=step))
     plot.set_ylabel('minutes')
