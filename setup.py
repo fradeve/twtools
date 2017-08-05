@@ -10,7 +10,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='twtools',
-    version='0.0.5',
+    version='0.1',
     description='A set of minimal tools to get info from TimeWarrior.',
     long_description=long_description,
     url='https://github.com/fradeve/timewarrior-tools',
@@ -18,7 +18,7 @@ setup(
     author_email='fradeve@inventati.org',
     license='GNU GPL v3',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Topic :: Time Tracking',
         'License :: OSI Approved :: GPLv3',
