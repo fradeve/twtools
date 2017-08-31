@@ -29,7 +29,7 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     keywords='timewarrior tracking',
-    install_requires=['arrow', 'Click==6.6', 'matplotlib', 'numpy'],
+    install_requires=['pandas', 'Click==6.7', 'matplotlib', 'numpy'],
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     entry_points={
         'console_scripts': [

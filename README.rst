@@ -78,7 +78,7 @@ To use a different time span or granularity, flags are available:
 
 .. code-block:: bash
 
-    twstats --timespan '500days ago' --step week twtools 'trello#464'
+    twstats --time_span '500days ago' --step week twtools 'trello#464'
 
 .. image::  by_week.png
 
