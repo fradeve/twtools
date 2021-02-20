@@ -116,7 +116,6 @@ def run(tags, time_span, step):
             ss.df.drop('id', axis=1, inplace=True) # Drop `id`.
 
             ss.df = ss.df.groupby(
-                #pd.TimeGrouper(step_fmt),
                 pd.Grouper(freq=step_fmt),
                 level=0,
             ).aggregate(
